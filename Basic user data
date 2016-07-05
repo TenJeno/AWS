@@ -1,0 +1,60 @@
+<powershell>
+#Set Administrator Password - AVOID USING THIS UNLESS YOU ABSOLUTELY HAVE TO
+#$admin = [adsi]("WinNT://./Administrator, user")
+#$admin.psbase.invoke("SetPassword", "${var.password}")
+
+#Rename Administrator account to help avoid a bruteforce attach on the Administrator account
+[string]$usergroupname = "Administrators"
+[string]$adsiObjectName = "WinNT://$($env:COMPUTERNAME)/$usergroupname,group"
+[string]$username = "Administrator"
+[string]$adsiUserName = "WinNT://$($env:COMPUTERNAME)/$adsiUserName,user"
+[string]$newUsername = "Admin"
+
+$adsiObjectList = New-Object -TypeName System.Collections.ArrayList
+
+If([ADSI]::Exists($adsiObjectName))
+{
+    $grpAdministrators = [ADSI]($adsiObjectName)
+    $adsiObject = New-Object -TypeName System.Management.Automation.PSObject
+    $grpAdministrators.Invoke("members") | % {
+      $adsiObject | Add-Member -MemberType NoteProperty -Name "Name" -Value ($_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null))
+      $adsiObject | Add-Member -MemberType NoteProperty -Name "Class" -Value ($_.GetType().InvokeMember("Class", 'GetProperty', $null, $_, $null))
+      $adsiObject | Add-Member -MemberType NoteProperty -Name "Path" -Value ($_.GetType().InvokeMember("Adspath", 'GetProperty', $null, $_, $null))
+      $adsiObjectList.Add($adsiObject) 
+    }
+    $userToRename = $adsiObjectList | Where {$_.Name -eq $username -and $_.Class -eq "User"}
+    if($userToRename -eq $null)
+    {
+        Write-Host "User $username does not exist within the local user group $usergroupname" 
+    }
+    else
+    {
+        $adsiAccount = [ADSI]("$($userToRename.Path), user")
+        $adsiAccount.Rename($newUsername)
+    }
+}
+#Set the System variable environment
+& SETX environment ${var.environment} /m
+& SETX role ${var.role} /m
+
+#Rename the computer to match the AWS Instance ID
+$instanceid = (New-Object System.Net.WebClient).DownloadString("http://169.254.169.254/latest/meta-data/instance-id")
+[string]$computerName = $($Env:COMPUTERNAME)
+if($computerName -ne $instanceid)
+{
+    Rename-Computer -NewName $instanceid -Force -Restart
+}
+
+
+
+#Puppet agent Install
+
+#Download manifest
+#Extract manifest 
+
+#& Puppet Apply
+
+</powershell>
+<persist>
+true
+</persist>
