@@ -3,7 +3,7 @@ Nuget TerraForm
 
 This Terraform creates a Nuget Server using the Nuget.Server nuget package found at GitHub.Com/BrokenFlame/NugetServer/releases.
 
-_If you are new to TerraForm please read the following:_
+_If you are new to TerraForm please read the following:_  
 1. Download and install Terraform for your platform from Terraform.io.  
 2. Download this folder to your local drive.  
 3. Make sure you have an AWS Credential file in your user profile. AWS has provided instructions on how to do this. http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-config-file.  
