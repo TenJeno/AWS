@@ -1,0 +1,21 @@
+#Ubuntu configuration for self updating DNS records base on AWSTags, instamce must be assigned role that can describe tags, and create,modify the route53 zone
+#Required tags:
+#dns_zone = Z1Q226J11FMLZY
+#dns_record= example.domain.com
+
+sudo apt-get update
+sudo apt-get install python2.7 -y
+sudo apt-get install python-pip -y
+pip install awscli
+sudo apt-get install jq -y
+sudo apt-get install nginx -y
+sudo systemctl reload nginx
+
+INSTANCE_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
+IPV4=$(wget -q -O - http://169.254.169.254/latest/meta-data/public-ipv4)
+REGION=`wget -q -O - http://169.254.169.254/latest/dynamic/instance-identity/document|grep region|awk -F\" '{print $4}'`
+ROUTE53_ZONE=$(aws ec2 describe-tags --region $REGION | jq -r '.Tags[]|select(.Key=="dns_zone")|select(.ResourceId==$INSTANCEID)|.Value' --arg INSTANCEID  $INSTANCE_ID)
+ROUTE53_RECORD=$(aws ec2 describe-tags --region $REGION | jq -r '.Tags[]|select(.Key=="dns_record")|select(.ResourceId==$INSTANCEID)|.Value' --arg INSTANCEID  $INSTANCE_ID)
+INSTANCE_RECORD=$(wget -q -O - http://169.254.169.254/latest/meta-data/public-hostname)
+echo "[]" |jq '.+[{"Comment": "A new record set for the zone.","Changes": [{"Action": "UPSERT","ResourceRecordSet": {"Name": "record1.txperfect.com.","Type": "CNAME","SetIdentifier": $INSTANCEID,"Weight": 1,"TTL": 60,"ResourceRecords": [{"Value": $INSTANCERECORD}]}}]}]' --arg INSTANCEID $INSTANCE_ID --arg INSTANCERECORD $INSTANCE_RECORD. > Route53CName.json
+aws route53 change-resource-record-sets --hosted-zone-id $ROUTE53_ZONE --change-batch file::createRoute54Record.json
