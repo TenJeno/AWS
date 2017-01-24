@@ -8,7 +8,7 @@ SQS_QUEUE=$(aws ec2 describe-tags --region $REGION | jq -r '.Tags[]|select(.Key=
 INSTANCE_RECORD=$(wget -q -O - http://169.254.169.254/latest/meta-data/public-hostname)
 aws sqs receive-message --queue-url $SQS_QUEUE --attribute-names All --message-attribute-names All --max-number-of-messages 1 --region $REGION | jq '.Messages[].Body |=  fromjson | .Messages[].Body.Message |= fromjson' > sqsMessage.json
 MSG_RECEIPTHANDLE=$(cat sqsMessage.json | jq '.Messages[].ReceiptHandle')
-MSG_HOOKFOUND=$(cat sqsMessage.json | jq '.Messages[].Body.Message | has(."LifecycleActionToken")')
+MSG_HOOKFOUND=$(cat sqsMessage.json | jq '.Messages[].Body.Message | has("LifecycleActionToken")')
 MSG_HOOKTOKEN=$(cat sqsMessage.json | jq '.Messages[].Body.Message.LifecycleActionToken')
 MSG_HOOKNAME=$(cat sqsMessage.json | jq '.Messages[].Body.MessageLifecycleHookName')
 MSG_INSTANCE=$(cat sqsMessage.json | jq '.Messages[].Body.Message.EC2InstanceId')
