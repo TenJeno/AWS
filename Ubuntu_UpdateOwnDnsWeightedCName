@@ -19,7 +19,11 @@ echo "{}" |jq '.+{"Comment": "A new record set for the zone.","Changes": [{"Acti
 
 wget -O update.sh https://raw.githubusercontent.com/BrokenFlame/AWS/master/UpdateDns.sh
 sudo chmod +x update.sh 
-crontab -l | { cat; echo "*/5 * * * * /home/ubuntu/update.sh"; } | crontab -
+sudo chmod 777 delRoute53CName.json
+sudo chmod 777 Route53CName.json
+sudo touch /sqsMessage.json
+sudo chmod 777 /sqsMessage.json
+crontab -l | { cat; echo "*/2 * * * * /update.sh"; } | crontab -
 sudo /etc/init.d/cron start
 
 
