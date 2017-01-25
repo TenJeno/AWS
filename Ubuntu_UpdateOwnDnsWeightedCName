@@ -23,7 +23,8 @@ sudo chmod 777 delRoute53CName.json
 sudo chmod 777 Route53CName.json
 sudo touch /sqsMessage.json
 sudo chmod 777 /sqsMessage.json
-crontab -l | { cat; echo "*/2 * * * * /update.sh"; } | crontab -
+echo '*/2 * * * * /update.sh' > /tmp/update.txt
+sudo -u ubuntu bash -c 'crontab /tmp/update.txt'
 sudo /etc/init.d/cron start
 
 
