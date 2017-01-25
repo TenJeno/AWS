@@ -18,7 +18,7 @@ echo "{}" |jq '.+{"Comment": "A new record set for the zone.","Changes": [{"Acti
 echo "{}" |jq '.+{"Comment": "A new record set for the zone.","Changes": [{"Action": "DELETE","ResourceRecordSet": {"Name": $ROUTE53RECORD,"Type": "CNAME", "SetIdentifier": $INSTANCEID,"Weight": 1,"TTL": 60,"ResourceRecords": [{"Value": $INSTANCERECORD}]}}]}' --arg INSTANCEID $INSTANCE_ID --arg INSTANCERECORD $INSTANCE_RECORD. --arg ROUTE53RECORD $ROUTE53_RECORD > delRoute53CName.json
 
 wget -O update.sh https://raw.githubusercontent.com/BrokenFlame/AWS/master/UpdateDns.sh
-sudo chmod +x update.sh 
+sudo chmod 777 update.sh 
 sudo chmod 777 delRoute53CName.json
 sudo chmod 777 Route53CName.json
 sudo touch /sqsMessage.json
