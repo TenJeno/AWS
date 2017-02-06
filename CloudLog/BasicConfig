@@ -1,39 +1,8 @@
-[loggers]
-keys=root,cwlogs,reader,publisher
-            
-[handlers]
-keys=consoleHandler
-            
-[formatters]
-keys=simpleFormatter
-           
-[logger_root]
-level=INFO
-handlers=consoleHandler
-            
-[logger_cwlogs]
-level=INFO
-handlers=consoleHandler
-qualname=cwlogs.push
-propagate=0
-            
-[logger_reader]
-level=INFO
-handlers=consoleHandler
-qualname=cwlogs.push.reader
-propagate=0
-            
-[logger_publisher]
-level=INFO
-handlers=consoleHandler
-qualname=cwlogs.push.publisher
-propagate=0
-            
-[handler_consoleHandler]
-class=logging.StreamHandler
-level=INFO
-formatter=simpleFormatter
-args=(sys.stderr,)
-            
-[formatter_simpleFormatter]
-format=%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(threadName)s - %(message)s
+[general]
+state_file = /var/awslogs/state/agent-state
+ 
+[/var/log/syslog]
+file = /var/log/syslog
+log_group_name = /var/log/syslog
+log_stream_name = {instance_id}
+datetime_format = %b %d %H:%M:%S
