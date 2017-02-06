@@ -1,0 +1,15 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:ListMetrics",
+                "cloudwatch:PutMetricData",
+                "ec2:DescribeTags"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ]
+}
