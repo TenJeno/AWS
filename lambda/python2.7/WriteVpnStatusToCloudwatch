@@ -1,0 +1,74 @@
+import json
+import boto3
+import logging
+import datetime
+from urllib2 import Request
+from urllib2 import urlopen
+
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+
+log.debug('Loading function')
+cw = boto3.client('cloudwatch')
+
+
+# Save the connection status in the CloudWatch Custom Metric
+def putCloudWatchMetric(metricName, value, vgw, cgw, region):
+    cw.put_metric_data(
+        Namespace='VPNStatus',
+        MetricData=[{
+            'MetricName': metricName,
+            'Value': value,
+            'Unit': 'Count',
+            'Dimensions': [{
+                'Name': 'VGW',
+                'Value': vgw
+            },
+                {
+                    'Name': 'CGW',
+                    'Value': cgw
+                },
+                {
+                    'Name': 'Region',
+                    'Value': region
+                }]
+        }]
+    )
+
+
+def lambda_handler(event, context):
+    ec2 = boto3.client('ec2')
+    AWS_Regions = ec2.describe_regions()['Regions']
+    cf = boto3.client('cloudformation')
+
+    numConnections = 0
+    countDict = {}
+    regionDict = {}
+    regionsLabelDict = {}
+    postDict = {}
+    outputs = {}
+    TimeNow = datetime.datetime.utcnow().isoformat()
+    TimeStamp = str(TimeNow)
+
+    # Check VPN connections status in all the regions
+    for region in AWS_Regions:
+        try:
+            ec2 = boto3.client('ec2', region_name=region['RegionName'])
+            awsregion = region['RegionName']
+            vpns = ec2.describe_vpn_connections()['VpnConnections']
+            connections = 0
+            for vpn in vpns:
+                if vpn['State'] == "available":
+                    numConnections += 1
+                    connections += 1
+                    active_tunnels = 0
+                    if vpn['VgwTelemetry'][0]['Status'] == "UP":
+                        active_tunnels += 1
+                    if vpn['VgwTelemetry'][1]['Status'] == "UP":
+                        active_tunnels += 1
+                    log.info('{} VPN ID: {}, State: {}, Tunnel0: {}, Tunnel1: {} -- {} active tunnels'.format(region['RegionName'], vpn['VpnConnectionId'],vpn['State'],vpn['VgwTelemetry'][0]['Status'],vpn['VgwTelemetry'][1]['Status'], active_tunnels))
+                    putCloudWatchMetric(vpn['VpnConnectionId'], active_tunnels, vpn['VpnGatewayId'], vpn['CustomerGatewayId'], region['RegionName'])
+        except Exception as e:
+            log.error("Exception: "+str(e))
+            continue
+    return numConnections
