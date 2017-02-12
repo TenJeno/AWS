@@ -1,0 +1,107 @@
+from __future__ import print_function
+
+import boto3
+import json
+import urllib
+import urllib2
+import os
+import uuid
+
+def lambda_handler(event, context):
+    # Get the required information or setup defaults
+    route53zone = 'XXXXXXXXXXXX'
+    try:
+        print(os.environ['route53zone'])
+    except KeyError:
+        print('Could not read the key "route53zone", this key is required to find the correct DNS Hosted Zone.')
+
+    fqdn = 'www.thetestdomain.org.'
+    try:
+        print(os.environ['fqdn'])
+    except KeyError:
+        print('Could not read the key "route53domain", this key is required in the format "mydomain.com."')
+
+    route53ttl = 60
+    try:
+        route53ttl
+        print(int(os.environ['route53ttl']))
+    except KeyError:
+        print('Could not read the key "route53ttl", this key is required in seconds in the format "300"')
+
+    region = "eu-west-1"
+    try:
+        region = os.environ['AWS_DEFAULT_REGION']
+    except:
+        print('Could not read the key "AWS_DEFAULT_REGION", unable to get default region.')
+
+        # Generate the GUID for the AWS Next page token
+        # guid = str(uuid.uuid1())
+        # print('Next result set guid = ' + guid)
+
+    # Get the IP Addresses of the required instances as determined by the filter
+    ec2client = boto3.client('ec2', region_name=region)
+    response = ec2client.describe_instances(
+        DryRun=False,
+        Filters=[
+            {
+                'Name': 'tag:enabledns',
+                'Values': [
+                    'true',
+                    'yes'
+                ]
+            },
+            {
+                'Name': 'instance-state-name',
+                'Values': [
+                    'running'
+                ]
+            }
+        ]
+    )
+
+    parsed_json = json.dumps(str(response))
+
+    # make the distinct list of fqdn
+    fqdnstags = []
+    for reservation in response['Reservations']:
+        for instance in reservation['Instances']:
+            for tag in instance['Tags']:
+                if tag['Key'] == 'route53fqdns':
+                    fqdnstags.append(str(tag['Key']).lower())
+    fqdnstags = list(set(fqdnstags))
+
+    # contruct the JSON for the Route53 Upsert record change
+    changerecord = json.dumps({
+        "Comment": "Lambda updated record",
+        "Changes": [{
+            "Action": "UPSERT",
+            "ResourceRecordSet": {
+                "Name": fqdn,
+                "Type": "A",
+                "TTL": route53ttl,
+                "ResourceRecords": []
+            }
+        }]
+    })
+
+    changesjson = json.loads(changerecord)
+
+    for fqdn in fqdnstags:
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                for tag in instance['Tags']:
+                    if tag['Key'] == 'route53fqdns' and tag['Value'] == fqdn:
+                        print(instance['InstanceId'] + " " + instance[
+                            'PrivateIpAddress'] + " will be assocated with DNS Record: " + fqdn)
+                        changesjson['Changes'][0]['ResourceRecordSet']['ResourceRecords'].append(
+                            {"Value": instance['PrivateIpAddress']})
+
+    print('Route53 upsert is as follows: ' + str(changesjson))
+
+    # Update the Route53 Record
+    route53client = boto3.client('route53')
+    route53response = route53client.change_resource_record_sets(HostedZoneId=route53zone, ChangeBatch=changesjson)
+
+    return event
+
+
