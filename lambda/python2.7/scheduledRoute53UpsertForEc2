@@ -8,100 +8,103 @@ import os
 import uuid
 
 def lambda_handler(event, context):
+
+    defaultregion = os.environ['AWS_DEFAULT_REGION']
+
     # Get the required information or setup defaults
-    route53zone = 'XXXXXXXXXXXX'
+    #tag = 'ScheduledByLambda'
     try:
-        print(os.environ['route53zone'])
+        print(os.environ['ScheduledByLambdaTag'])
+        enablescheduletag = os.environ['ScheduledByLambdaTag']
     except KeyError:
-        print('Could not read the key "route53zone", this key is required to find the correct DNS Hosted Zone.')
+        print('Please provide an environment variable for "ScheduledByLambda" with a value to check EC2 Instances for.')
 
-    fqdn = 'www.thetestdomain.org.'
     try:
-        print(os.environ['fqdn'])
+        print(os.environ['Vpc_Id'])
     except KeyError:
-        print('Could not read the key "route53domain", this key is required in the format "mydomain.com."')
+        print('Please provide the environment variable "Vpc_Id", with the appropriate value to narrow down the EC2 search specification.')
 
-    route53ttl = 60
     try:
-        route53ttl
-        print(int(os.environ['route53ttl']))
+        print(os.environ['Region'])
+        region = (os.environ['Region'])
     except KeyError:
-        print('Could not read the key "route53ttl", this key is required in seconds in the format "300"')
+        print('The "Region" environment variable was not specified. Using the default region ' + str(defaultregion) + ".")
+        region = str(defaultregion)
 
-    region = "eu-west-1"
     try:
-        region = os.environ['AWS_DEFAULT_REGION']
-    except:
-        print('Could not read the key "AWS_DEFAULT_REGION", unable to get default region.')
+        print(os.environ['Operation'])
+        operation = (os.environ['Operation'])
+    except KeyError:
+        print('Please provide the environment variable "Operation" with the appropriate value, either "Start" or "Stop".')
 
-        # Generate the GUID for the AWS Next page token
-        # guid = str(uuid.uuid1())
-        # print('Next result set guid = ' + guid)
+    # Generate the GUID for the AWS Next page token
+    # guid = str(uuid.uuid1())
+    # print('Next result set guid = ' + guid)
 
     # Get the IP Addresses of the required instances as determined by the filter
-    ec2client = boto3.client('ec2', region_name=region)
-    response = ec2client.describe_instances(
-        DryRun=False,
-        Filters=[
-            {
-                'Name': 'tag:enabledns',
-                'Values': [
-                    'true',
-                    'yes'
-                ]
-            },
-            {
-                'Name': 'instance-state-name',
-                'Values': [
-                    'running'
-                ]
-            }
-        ]
-    )
 
-    parsed_json = json.dumps(str(response))
+    if operation == "Stop":
+        ec2client = boto3.client('ec2', region_name=region)
+        response = ec2client.describe_instances(
+            DryRun=False,
+            Filters=[
+                {
+                    'Name': 'tag:%s' % enablescheduletag,
+                    'Values': [
+                        'true',
+                        'yes'
+                    ]
+                },
+                {
+                    'Name': 'instance-state-name',
+                    'Values': [
+                        'running'
+                    ]
+                }
+            ]
+        )
 
-    # make the distinct list of fqdn
-    fqdnstags = []
+    if operation == "Start":
+        ec2client = boto3.client('ec2', region_name=region)
+        response = ec2client.describe_instances(
+            DryRun=False,
+            Filters=[
+                {
+                    'Name': 'tag:%s' % enablescheduletag,
+                    'Values': [
+                        'true',
+                        'yes'
+                    ]
+                },
+                {
+                    'Name': 'instance-state-name',
+                    'Values': [
+                        'stopped'
+                    ]
+                }
+            ]
+        )
+        
+    print(response)
+    
+    if
+    instance_ids = []
     for reservation in response['Reservations']:
         for instance in reservation['Instances']:
             for tag in instance['Tags']:
-                if tag['Key'] == 'route53fqdns':
-                    fqdnstags.append(str(tag['Key']).lower())
-    fqdnstags = list(set(fqdnstags))
+                if tag['Key'] == str(enablescheduletag) and tag['Value'] == 'true':
+                    instance_ids.append(instance['InstanceId'])
+    
+    instancelist = ",".join(instance_ids)
+    print(str(instancelist))
+    
+    
+    if operation == "Stop":
+        print('Stopping ' + instancelist + '.')
+        ec2client.stop_instances(InstanceIds=instance_ids)
 
-    # contruct the JSON for the Route53 Upsert record change
-    changerecord = json.dumps({
-        "Comment": "Lambda updated record",
-        "Changes": [{
-            "Action": "UPSERT",
-            "ResourceRecordSet": {
-                "Name": fqdn,
-                "Type": "A",
-                "TTL": route53ttl,
-                "ResourceRecords": []
-            }
-        }]
-    })
-
-    changesjson = json.loads(changerecord)
-
-    for fqdn in fqdnstags:
-        for reservation in response['Reservations']:
-            for instance in reservation['Instances']:
-                for tag in instance['Tags']:
-                    if tag['Key'] == 'route53fqdns' and tag['Value'] == fqdn:
-                        print(instance['InstanceId'] + " " + instance[
-                            'PrivateIpAddress'] + " will be assocated with DNS Record: " + fqdn)
-                        changesjson['Changes'][0]['ResourceRecordSet']['ResourceRecords'].append(
-                            {"Value": instance['PrivateIpAddress']})
-
-    print('Route53 upsert is as follows: ' + str(changesjson))
-
-    # Update the Route53 Record
-    route53client = boto3.client('route53')
-    route53response = route53client.change_resource_record_sets(HostedZoneId=route53zone, ChangeBatch=changesjson)
+    if operation == "Start":
+        print('Starting ' + instancelist + '.')
+        ec2client.start_instances(InstanceIds=instance_ids)
 
     return event
-
-
