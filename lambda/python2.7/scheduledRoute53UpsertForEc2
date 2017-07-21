@@ -12,13 +12,14 @@ def lambda_handler(event, context):
     defaultregion = os.environ['AWS_DEFAULT_REGION']
 
     # Get the required information or setup defaults
-    #tag = 'ScheduledByLambda'
+    enablescheduletag = 'ScheduledByLambda'
     try:
         print(os.environ['ScheduledByLambdaTag'])
         enablescheduletag = os.environ['ScheduledByLambdaTag']
     except KeyError:
         print('Please provide an environment variable for "ScheduledByLambda" with a value to check EC2 Instances for.')
 
+    vpcid = None
     try:
         print(os.environ['Vpc_Id'])
     except KeyError:
@@ -86,14 +87,20 @@ def lambda_handler(event, context):
         )
         
     print(response)
-    
-    if
     instance_ids = []
-    for reservation in response['Reservations']:
-        for instance in reservation['Instances']:
-            for tag in instance['Tags']:
-                if tag['Key'] == str(enablescheduletag) and tag['Value'] == 'true':
-                    instance_ids.append(instance['InstanceId'])
+    
+    if vpcid == None:
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                for tag in instance['Tags']:
+                    if tag['Key'] == str(enablescheduletag) and tag['Value'] == 'true':
+                        instance_ids.append(instance['InstanceId'])
+    else:
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                for tag in instance['Tags']:
+                    if tag['Key'] == str(enablescheduletag) and tag['Value'] == 'true' and instance.NetworkInterfaces.VpcId == vpcid:
+                        instance_ids.append(instance['InstanceId'])
     
     instancelist = ",".join(instance_ids)
     print(str(instancelist))
