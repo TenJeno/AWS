@@ -31,7 +31,8 @@ $cert = Get-Item -Path $certpath
 $cert |Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root
 
 #Install Region Intermediate Certificate
-$region = (Invoke-Restmethod -Method Get -Uri http://169.254.169.254/latest/meta-data/placement/availability-zone).Substring(0,$region.Length-1)
+[string]$AZ = [string](Invoke-Restmethod -Method Get -Uri http://169.254.169.254/latest/meta-data/placement/availability-zone)
+$region = $AZ.Substring(0, $AZ.Length-1)
 $certpath = Join-Path -Path $env:TEMP -ChildPath "$region.pem"
 if(Test-Path $certpath)
 {
