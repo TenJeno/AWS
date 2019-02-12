@@ -1,0 +1,12 @@
+function is_fargate_stable() {
+    local cluster_name=$2
+    local services_names=$1
+    local region=$3
+    echo "Waiting for deployment to complete in $region..."
+    aws ecs wait services-stable --cluster $cluster_name --services $services_names --region $region
+    if [[ ? == 255 ]]; then
+        echo -e "\e[1m\e[31mERROR: Failed to deploy in $region, manual intervention required."
+        echo -e "\e[1m\e[93mINFO: AWS console: https://console.aws.amazon.com/ecs/home?region=$region#clusters/targeting-service/services/targeting-service_service/details"
+        exit
+    fi
+}
