@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Data;
+using System.Text.RegularExpressions;
 
 namespace SqlToS3Exporter
 {
@@ -18,7 +19,7 @@ namespace SqlToS3Exporter
             return stream;
         }
 
-        public static string ToCSV(this DataTable dtDataTable)
+        public static string ToCSV(this DataTable dtDataTable, string delimiter = ",")
         {
             StringBuilder stringBuilder = new StringBuilder();
             for (int i = 0; i < dtDataTable.Columns.Count; i++)
@@ -26,7 +27,7 @@ namespace SqlToS3Exporter
                 stringBuilder.Append(dtDataTable.Columns[i]);
                 if (i < dtDataTable.Columns.Count - 1)
                 {
-                    stringBuilder.Append(", ");
+                    stringBuilder.Append(string.Format("{0} ", delimiter));
                 }
             }
 
@@ -37,10 +38,16 @@ namespace SqlToS3Exporter
                 {
                     if (!Convert.IsDBNull(dr[i]))
                     {
+                        //char leftDoubleQuote = '\u201c';
+                        //char rightDoubleQuote = '\u201d';
                         string value = dr[i].ToString();
-                        if (value.Contains(','))
+                        //if (value.Contains(delimiter) | value.Contains(leftDoubleQuote) | value.Contains(rightDoubleQuote) | value.Contains("\""))
+                        if (value.Contains(delimiter))
                         {
-                            value = String.Format("\"{0}\"", value);
+                            // = value.Replace('\u201c', '\"').Replace('\u201d', '\"');
+                            //value = value.Replace("\"", "\"\"");
+                            //value = String.Format("\"{0}\"", value);
+                            value = Regex.Replace(value, @"\|", " ");
                             stringBuilder.Append(value);
                         }
                         else
@@ -50,7 +57,7 @@ namespace SqlToS3Exporter
                     }
                     if (i < dtDataTable.Columns.Count - 1)
                     {
-                        stringBuilder.Append(", ");
+                        stringBuilder.Append(delimiter);
                     }
                 }
                 stringBuilder.AppendLine();
