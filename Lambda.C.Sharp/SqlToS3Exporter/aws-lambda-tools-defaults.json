@@ -1,3 +1,4 @@
+
 {
     "Information" : [
         "This file provides default values for the deployment wizard inside Visual Studio and the AWS Lambda commands added to the .NET Core CLI.",
@@ -10,12 +11,14 @@
     "configuration" : "Release",
     "framework"     : "netcoreapp3.1",
     "function-runtime" : "provided",
-    "function-memory-size" : 512,
-    "function-timeout"     : 60,
+    "function-memory-size" : 1024,
+    "function-timeout"     : 120,
     "function-handler"     : "not_required_for_custom_runtime",
     "msbuild-parameters"   : "--self-contained true",
     "function-name"        : "SqlToS3Exporter",
     "function-role"        : "arn:aws:iam::171408413795:role/SqlToS3Exporter",
     "tracing-mode"         : "PassThrough",
-    "environment-variables" : ""
+    "environment-variables" : "\"OutBucket\"=\"bi-prod.tenproduct.com\";\"PrefixKey\"=\"CMS\";\"QueryPrefixKey\"=\"CMS_Queries\";\"QuerySourceBucket\"=\"bi-prod.tenproduct.com\";\"Server\"=\"ts-prod-euw1-cms-db.cejal7uiylph.eu-west-1.rds.amazonaws.com\";\"ServerPort\"=\"3306\";\"Database\"=\"cms\";\"User\"=\"master\";\"CsvDelimiter\"=\"|\"",
+    "function-subnets"      : "subnet-0d14008981cee2af6,subnet-034b404ee6fa42e1b",
+    "function-security-groups" : "sg-03b3b21bf4e27ca99,sg-0ba4641d582fffaf5,sg-0dc33add5cfc3ff81"
 }
