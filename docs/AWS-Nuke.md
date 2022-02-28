@@ -43,3 +43,89 @@ tar -xvf aws-nuke-v2.17.0-darwin-arm64.tar.gz
 <b>Linux</b>
 ```sh
 tar -xvf aws-nuke-v2.17.0-linux-amd64.tar.gz
+
+3. Rename the extracted executable file to:
+
+<b>Windows: <i>aws-nuke.exe</i></b>
+
+<b>Linux/Mac: <i>aws-nuke</i></b>
+
+4. Unblock or set the correct permissions on the file:
+
+Windows: 
+In PowerShell in terminal navigate to the directory where you extracted aws-nuke and execute the following command.
+
+<b>Windows</b>
+```PowerShell
+Unblock-File aws-nuke.exe
+```
+
+<b>Linux/Mac</b>
+In terminal navigate to the directory where you extracted aws-nuke and execute the following command.
+
+```sh
+chmod +x aws-nuke 
+```
+
+5. Create the AWS-Nuke Configuration File with using the following content as a guide under the file name aws-nuke.yaml
+
+```yaml
+regions:
+- eu-west-1
+- global
+
+account-blocklist:
+- "999999999999" # production
+- "999999999998" # SSO login
+
+accounts:
+- "000000000000": {} # AWS Account number to be nuked
+```
+
+
+6.	Execute AWS-Nuke in as a Dry-Run
+
+```cmd
+aws-nuke.exe -c nuke-config.yml --profile <ACCOUNT PROFILE>
+```
+
+Linux/Mac
+```sh
+./aws-nuke -c nuke-config.yml --profile <ACCOUNT PROFILE>
+```
+
+7. Using the output of the dry run, amend the AWS-Nuke configuration file to include your username, user access key and user policy attachment.
+
+```yaml
+regions:
+- eu-west-1
+- global
+
+
+account-blocklist:
+- "999999999999" # production
+- "999999999998" # SSO login
+
+accounts:
+- "000000000000": {}# aws-nuke-example
+
+filters:
+  IAMUser:
+  - "my-user"
+  IAMUserPolicyAttachment:
+  - "my-user -> AdministratorAccess"
+  IAMUserAccessKey:
+  - "my-user -> ABCDEFGHIJKLMNOPQRST"
+```
+
+8. Execute AWS-Nuke 
+
+<b>Windows</b>
+```cmd
+aws-nuke.exe -c nuke-config.yml --profile <ACCOUNT PROFILE> --no-dry-run
+```
+
+<b>Linux/Mac</b>
+```sh
+aws-nuke -c nuke-config.yml --profile <ACCOUNT PROFILE> --no-dry-run
+```
